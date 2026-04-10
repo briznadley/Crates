@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Crates — Briznadley</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --black: #0a0908;
+    --deep: #111010;
+    --surface: #1a1918;
+    --groove: #242220;
+    --border: #2e2c2a;
+    --muted: #5a5653;
+    --warm: #c8b89a;
+    --cream: #f0e8d8;
+    --accent: #e85d2f;
+    --gold: #c9933a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── LOADING SCREEN ── */
+  #loading-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    text-align: center;
+    padding: 2rem;
+  }
+  .logo-mark {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #111 0%, #333 25%, #111 50%, #222 75%, #111 100%);
+    border: 2px solid var(--border);
+    position: relative;
+    animation: spin 6s linear infinite;
+    box-shadow: 0 0 40px rgba(232,93,47,0.15);
+  }
+  .logo-mark::after {
+    content: '';
+    position: absolute;
+    inset: 50%; transform: translate(-50%,-50%);
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  .loading-title em { font-style: italic; color: var(--accent); }
+  .loading-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .loading-progress {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--warm);
+    min-height: 1.2em;
+  }
+  .progress-bar-wrap {
+    width: 240px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,9,8,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    height: 64px;
+  }
+  .header-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem; font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .header-brand span { color: var(--accent); font-style: italic; }
+  .header-user {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .header-user strong { color: var(--warm); }
+  .header-controls { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+  .filter-bar { display: flex; align-items: center; gap: 0.5rem; }
+  .filter-bar select, .search-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--cream);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 2px;
+    outline: none; cursor: pointer;
+  }
+  .filter-bar select:focus, .search-input:focus { border-color: var(--accent); }
+  .search-input { width: 160px; }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    padding: 0.75rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 2rem;
+    background: var(--deep);
+    overflow-x: auto;
+  }
+  .stat { display: flex; flex-direction: column; gap: 0.15rem; white-space: nowrap; }
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem; font-weight: 700;
+    color: var(--cream); line-height: 1;
+  }
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .stat-divider { width: 1px; height: 30px; background: var(--border); flex-shrink: 0; }
+
+  /* ── GRID ── */
+  #collection-grid {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.25rem;
+  }
+  .record-card { cursor: pointer; position: relative; animation: fadeUp 0.4s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .record-card:hover .cover-wrap { transform: translateY(-4px); }
+  .record-card:hover .cover-wrap::after { opacity: 1; }
+  .cover-wrap {
+    position: relative; aspect-ratio: 1;
+    border-radius: 2px; overflow: hidden;
+    background: var(--groove);
+    transition: transform 0.25s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .cover-wrap::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(232,93,47,0.2), transparent 60%);
+    opacity: 0; transition: opacity 0.25s;
+  }
+  .cover-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cover-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--groove);
+  }
+  .cover-placeholder svg { opacity: 0.2; }
+  .play-hint {
+    position: absolute; bottom: 8px; right: 8px;
+    width: 32px; height: 32px;
+    background: rgba(232,93,47,0.9);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(0.8);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .record-card:hover .play-hint { opacity: 1; transform: scale(1); }
+  .card-meta { padding: 0.6rem 0.1rem 0; }
+  .card-artist {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.9rem; font-weight: 700; color: var(--cream);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.3; margin-top: 0.1rem;
+  }
+  .card-year {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; color: var(--border); margin-top: 0.2rem;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    padding: 1.5rem 2rem 0;
+    display: flex; align-items: baseline; gap: 1rem;
+  }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic; color: var(--muted); }
+  .section-count { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--border); }
+
+  /* ── LOAD MORE ── */
+  #load-more-wrap { padding: 1rem 2rem 3rem; text-align: center; }
+  #load-more-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--warm);
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 0.7rem 2rem; cursor: pointer; border-radius: 2px;
+    transition: all 0.2s;
+  }
+  #load-more-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .empty-state {
+    padding: 5rem 2rem; text-align: center;
+    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.8rem;
+  }
+
+  /* ── MODAL ── */
+  #modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 500;
+    display: none; align-items: center; justify-content: center;
+    padding: 2rem;
+    opacity: 0; transition: opacity 0.25s;
+  }
+  #modal-overlay.open { display: flex; opacity: 1; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    max-width: 780px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    display: flex; flex-direction: column;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+    animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.92) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .modal-hero { display: flex; flex-shrink: 0; }
+  .modal-cover {
+    width: 260px; flex-shrink: 0; aspect-ratio: 1;
+    object-fit: cover; border-radius: 4px 0 0 0;
+  }
+  .modal-cover-placeholder {
+    width: 260px; flex-shrink: 0; aspect-ratio: 1;
+    background: var(--groove);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px 0 0 0;
+  }
+  .modal-info {
+    flex: 1; padding: 2rem;
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-width: 0;
+  }
+  .modal-label {
+    font-family: 'DM Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .modal-artist { font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic; color: var(--warm); margin-bottom: 0.25rem; }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; color: var(--cream); line-height: 1.15; letter-spacing: -0.02em; }
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1rem; }
+  .tag {
+    font-family: 'DM Mono', monospace; font-size: 0.62rem;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0.2rem 0.5rem; border: 1px solid var(--border);
+    border-radius: 2px; color: var(--muted);
+  }
+  .modal-meta-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 1.5rem; margin-top: auto; padding-top: 1.5rem;
+  }
+  .meta-item-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.15rem; }
+  .meta-item-value { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; color: var(--cream); font-weight: 500; }
+  .modal-body { padding: 1.5rem 2rem; border-top: 1px solid var(--border); }
+  .tracklist { display: flex; flex-direction: column; }
+  .track-row {
+    display: grid; grid-template-columns: 2rem 1fr auto;
+    align-items: center; gap: 0.75rem;
+    padding: 0.5rem 0; border-bottom: 1px solid rgba(46,44,42,0.5);
+    font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+    transition: background 0.15s;
+  }
+  .track-row:last-child { border-bottom: none; }
+  .track-row:hover { background: rgba(255,255,255,0.02); }
+  .track-pos { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); text-align: right; }
+  .track-title { color: var(--cream); }
+  .track-duration { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+  .value-bar {
+    display: flex; align-items: center; gap: 1rem;
+    margin-top: 1rem; padding: 0.85rem 1rem;
+    background: var(--groove); border-radius: 2px; border: 1px solid var(--border);
+  }
+  .value-entry { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; text-align: center; }
+  .value-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .value-num { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--gold); }
+  .value-divider { width: 1px; height: 28px; background: var(--border); }
+  .modal-close {
+    position: absolute; top: 1rem; right: 1rem;
+    width: 32px; height: 32px;
+    background: var(--groove); border: 1px solid var(--border);
+    border-radius: 50%; color: var(--muted); font-size: 1rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; z-index: 10;
+  }
+  .modal-close:hover { border-color: var(--accent); color: var(--accent); }
+  .modal-footer {
+    padding: 1rem 2rem; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .discogs-link {
+    font-family: 'DM Mono', monospace; font-size: 0.7rem;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    text-decoration: none; border-bottom: 1px solid var(--border); transition: color 0.2s;
+  }
+  .discogs-link:hover { color: var(--warm); border-bottom-color: var(--warm); }
+  .modal-nav { display: flex; gap: 0.5rem; }
+  .nav-btn {
+    width: 30px; height: 30px; background: var(--groove);
+    border: 1px solid var(--border); color: var(--muted);
+    font-size: 0.8rem; cursor: pointer; border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: var(--warm); color: var(--warm); }
+
+  .inline-spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite; margin: 1.5rem auto; display: block;
+  }
+
+  @media (max-width: 600px) {
+    .modal-hero { flex-direction: column; }
+    .modal-cover, .modal-cover-placeholder { width: 100%; border-radius: 4px 4px 0 0; }
+    .modal-meta-grid { grid-template-columns: 1fr; }
+    #collection-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.85rem; padding: 1rem; }
+    header {
+      padding: 0 1rem;
+      height: auto;
+      flex-wrap: wrap;
+      gap: 0;
+      padding-bottom: 0;
+    }
+    .header-brand { padding: 1rem 0; }
+    .header-user { display: none; }
+    .header-controls {
+      width: 100%;
+      margin-left: 0;
+      border-top: 1px solid var(--border);
+      padding: 0.6rem 0;
+    }
+    .filter-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+    }
+    .search-input {
+      width: 100%;
+      grid-column: 1 / -1;
+    }
+    .filter-bar select { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="logo-mark"></div>
+  <div>
+    <h1 class="loading-title">The <em>Crates</em></h1>
+    <p style="font-family:'Playfair Display',serif;font-style:italic;font-size:1rem;color:var(--warm);margin-top:0.25rem;text-align:center">Briznadley</p>
+  </div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
+  <div class="loading-progress" id="loading-progress">Connecting to Discogs…</div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <header>
+    <div class="header-brand">The <span>Crates</span></div>
+    <div class="header-user">Collection of <strong>Briznadley</strong></div>
+    <div class="header-controls">
+      <div class="filter-bar">
+        <input type="text" class="search-input" id="search-input" placeholder="Search…" oninput="filterRecords()">
+        <select id="sort-select" onchange="sortRecords()">
+          <option value="added">Recently Added</option>
+          <option value="artist">Artist A–Z</option>
+          <option value="year">Year</option>
+          <option value="title">Title A–Z</option>
+        </select>
+        <select id="genre-filter" onchange="filterRecords()">
+          <option value="">All Genres</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <div class="stats-bar" id="stats-bar"></div>
+
+  <div class="section-header">
+    <span class="section-title">Showing</span>
+    <span class="section-count" id="showing-count"></span>
+  </div>
+
+  <div id="collection-grid"></div>
+  <div id="load-more-wrap" style="display:none">
+    <button id="load-more-btn" onclick="loadMoreRecords()">Load More Records</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal" id="modal-content">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-inner"></div>
+  </div>
+</div>
+
+<script>
+const TOKEN = 'OvQsJTwQJnYfuftsufmvaiAyTVyNIqFsgmOFArVM';
+const USERNAME = 'Briznadley';
+const BASE = 'https://api.discogs.com';
+const PAGE_SIZE = 100;
+const DISPLAY_SIZE = 48;
+
+let allReleases = [];
+let filteredReleases = [];
+let displayedCount = DISPLAY_SIZE;
+let currentModalIdx = -1;
+
+const $ = id => document.getElementById(id);
+
+async function fetchDiscogs(path) {
+  const res = await fetch(BASE + path, {
+    headers: {
+      'Authorization': `Discogs token=${TOKEN}`,
+      'User-Agent': 'TheCratesApp/1.0'
+    }
+  });
+  if (!res.ok) throw new Error(`Discogs API error: ${res.status}`);
+  return res.json();
+}
+
+async function init() {
+  try {
+    // Get first page to find total
+    setProgress('Fetching your collection…', 5);
+    const first = await fetchDiscogs(`/users/${USERNAME}/collection/folders/0/releases?page=1&per_page=${PAGE_SIZE}&sort=added&sort_order=desc`);
+    allReleases = first.releases || [];
+    const totalPages = first.pagination?.pages || 1;
+    const totalItems = first.pagination?.items || allReleases.length;
+
+    setProgress(`Found ${totalItems} records — loading…`, 20);
+
+    // Fetch all remaining pages in parallel (batched)
+    if (totalPages > 1) {
+      const pages = Array.from({length: totalPages - 1}, (_, i) => i + 2);
+      const batchSize = 5;
+      for (let i = 0; i < pages.length; i += batchSize) {
+        const batch = pages.slice(i, i + batchSize);
+        const results = await Promise.all(
+          batch.map(p => fetchDiscogs(`/users/${USERNAME}/collection/folders/0/releases?page=${p}&per_page=${PAGE_SIZE}&sort=added&sort_order=desc`))
+        );
+        results.forEach(r => allReleases.push(...(r.releases || [])));
+        const pct = 20 + Math.round(((i + batchSize) / pages.length) * 75);
+        setProgress(`Loaded ${allReleases.length} of ${totalItems} records…`, Math.min(pct, 95));
+      }
+    }
+
+    setProgress(`${allReleases.length} records loaded. Building your crates…`, 100);
+    await new Promise(r => setTimeout(r, 500));
+    buildApp();
+  } catch(e) {
+    $('loading-progress').textContent = `Error: ${e.message}. Check your token and username.`;
+    $('loading-progress').style.color = 'var(--accent)';
+  }
+}
+
+function setProgress(msg, pct) {
+  $('loading-progress').textContent = msg;
+  $('progress-fill').style.width = pct + '%';
+}
+
+function buildApp() {
+  $('loading-screen').style.display = 'none';
+  $('app').style.display = 'block';
+  buildStats();
+  buildGenreFilter();
+  filteredReleases = [...allReleases];
+  renderGrid();
+}
+
+function buildStats() {
+  const total = allReleases.length;
+  const genres = new Set();
+  const years = [];
+  const labels = new Set();
+  allReleases.forEach(r => {
+    const bi = r.basic_information;
+    bi.genres?.forEach(g => genres.add(g));
+    if (bi.year && bi.year > 1900) years.push(bi.year);
+    if (bi.labels?.[0]?.name) labels.add(bi.labels[0].name);
+  });
+  years.sort((a,b) => a-b);
+
+  $('stats-bar').innerHTML = `
+    <div class="stat"><div class="stat-value">${total.toLocaleString()}</div><div class="stat-label">Records</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-value">${genres.size}</div><div class="stat-label">Genres</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-value">${labels.size}</div><div class="stat-label">Labels</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-value">${years[0] || '—'}</div><div class="stat-label">Earliest Year</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-value">${years[years.length-1] || '—'}</div><div class="stat-label">Latest Year</div></div>
+  `;
+}
+
+function buildGenreFilter() {
+  const genres = new Set();
+  allReleases.forEach(r => r.basic_information?.genres?.forEach(g => genres.add(g)));
+  const sel = $('genre-filter');
+  [...genres].sort().forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = g;
+    sel.appendChild(opt);
+  });
+}
+
+function filterRecords() {
+  const q = $('search-input').value.toLowerCase();
+  const genre = $('genre-filter').value;
+  filteredReleases = allReleases.filter(r => {
+    const bi = r.basic_information;
+    const matchQ = !q || bi.title.toLowerCase().includes(q) || bi.artists?.some(a => a.name.toLowerCase().includes(q));
+    const matchG = !genre || bi.genres?.includes(genre);
+    return matchQ && matchG;
+  });
+  sortRecords(true);
+}
+
+function sortRecords(skipFilter = false) {
+  if (!skipFilter) filterRecords();
+  const sort = $('sort-select').value;
+  if (sort === 'artist') filteredReleases.sort((a,b) => artistName(a).localeCompare(artistName(b)));
+  else if (sort === 'year') filteredReleases.sort((a,b) => (b.basic_information.year||0) - (a.basic_information.year||0));
+  else if (sort === 'title') filteredReleases.sort((a,b) => a.basic_information.title.localeCompare(b.basic_information.title));
+  displayedCount = DISPLAY_SIZE;
+  renderGrid();
+}
+
+function artistName(r) {
+  return r.basic_information?.artists?.[0]?.name?.replace(/\s*\(\d+\)$/, '') || '';
+}
+
+function renderGrid() {
+  const grid = $('collection-grid');
+  const subset = filteredReleases.slice(0, displayedCount);
+  $('showing-count').textContent = `${subset.length} of ${filteredReleases.length} records`;
+
+  grid.innerHTML = '';
+  if (subset.length === 0) {
+    grid.innerHTML = '<div class="empty-state">No records match your search.</div>';
+    $('load-more-wrap').style.display = 'none';
+    return;
+  }
+
+  subset.forEach((r, idx) => {
+    const bi = r.basic_information;
+    const artist = artistName(r) || 'Unknown';
+    const thumb = bi.cover_image || bi.thumb || '';
+    const card = document.createElement('div');
+    card.className = 'record-card';
+    card.style.animationDelay = `${Math.min(idx % DISPLAY_SIZE, 24) * 0.025}s`;
+    card.innerHTML = `
+      <div class="cover-wrap">
+        ${thumb ? `<img class="cover-img" src="${thumb}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+        <div class="cover-placeholder" ${thumb ? 'style="display:none"' : ''}>
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="20" stroke="#5a5653" stroke-width="2"/>
+            <circle cx="24" cy="24" r="6" stroke="#5a5653" stroke-width="2"/>
+            <circle cx="24" cy="24" r="2" fill="#5a5653"/>
+          </svg>
+        </div>
+        <div class="play-hint"><svg width="10" height="12" viewBox="0 0 10 12" fill="white"><path d="M0 0l10 6-10 6z"/></svg></div>
+      </div>
+      <div class="card-meta">
+        <div class="card-artist">${artist}</div>
+        <div class="card-title">${bi.title}</div>
+        <div class="card-year">${bi.year || ''}</div>
+      </div>`;
+    card.addEventListener('click', () => openModal(idx));
+    grid.appendChild(card);
+  });
+
+  $('load-more-wrap').style.display = filteredReleases.length > displayedCount ? 'block' : 'none';
+}
+
+function loadMoreRecords() {
+  displayedCount += DISPLAY_SIZE;
+  renderGrid();
+  window.scrollBy({ top: 400, behavior: 'smooth' });
+}
+
+// ── MODAL ──
+
+async function openModal(idx) {
+  currentModalIdx = idx;
+  const release = filteredReleases[idx];
+  const bi = release.basic_information;
+  const artist = artistName(release) || 'Unknown';
+  const genres = [...(bi.genres || []), ...(bi.styles || [])].slice(0, 6);
+  const label = bi.labels?.[0]?.name || '—';
+  const catno = bi.labels?.[0]?.catno || '—';
+  const format = bi.formats?.[0]?.name || '—';
+  const formatDesc = bi.formats?.[0]?.descriptions?.join(', ') || '';
+  const cover = bi.cover_image || bi.thumb || '';
+
+  const overlay = $('modal-overlay');
+  overlay.style.display = 'flex';
+  setTimeout(() => overlay.classList.add('open'), 10);
+  document.body.style.overflow = 'hidden';
+
+  $('modal-inner').innerHTML = `
+    <div class="modal-hero">
+      ${cover
+        ? `<img class="modal-cover" src="${cover}" alt="${bi.title}">`
+        : `<div class="modal-cover-placeholder"><svg width="64" height="64" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="#5a5653" stroke-width="2"/><circle cx="24" cy="24" r="6" stroke="#5a5653" stroke-width="2"/><circle cx="24" cy="24" r="2" fill="#5a5653"/></svg></div>`
+      }
+      <div class="modal-info">
+        <div>
+          <div class="modal-label">${format}${formatDesc ? ' · ' + formatDesc : ''}</div>
+          <div class="modal-artist">${artist}</div>
+          <div class="modal-title">${bi.title}</div>
+          <div class="modal-tags">${genres.map(g => `<span class="tag">${g}</span>`).join('')}</div>
+        </div>
+        <div class="modal-meta-grid">
+          <div class="meta-item"><div class="meta-item-label">Label</div><div class="meta-item-value">${label}</div></div>
+          <div class="meta-item"><div class="meta-item-label">Cat. No.</div><div class="meta-item-value">${catno}</div></div>
+          <div class="meta-item"><div class="meta-item-label">Year</div><div class="meta-item-value">${bi.year || '—'}</div></div>
+          <div class="meta-item"><div class="meta-item-label">Country</div><div class="meta-item-value" id="modal-country">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body"><div class="inline-spinner"></div></div>
+    <div class="modal-footer">
+      <a class="discogs-link" href="https://www.discogs.com/release/${release.id}" target="_blank">View on Discogs ↗</a>
+      <div class="modal-nav">
+        <button class="nav-btn" onclick="navigateModal(-1)">‹</button>
+        <button class="nav-btn" onclick="navigateModal(1)">›</button>
+      </div>
+    </div>`;
+
+  try {
+    const data = await fetchDiscogs(`/releases/${release.id}`);
+    renderModalDetails(data);
+  } catch(e) {
+    $('modal-body').innerHTML = '<p style="color:var(--muted);font-family:DM Mono,monospace;font-size:0.75rem;padding:1rem 0">Could not load full details.</p>';
+  }
+}
+
+function renderModalDetails(data) {
+  const country = $('modal-country');
+  if (country) country.textContent = data.country || '—';
+
+  const tracklist = data.tracklist || [];
+  const community = data.community;
+  const lowestPrice = data.lowest_price;
+  let html = '';
+
+  if (community) {
+    html += `<div class="value-bar">
+      <div class="value-entry"><div class="value-label">Haves</div><div class="value-num">${community.have?.toLocaleString() || '—'}</div></div>
+      <div class="value-divider"></div>
+      <div class="value-entry"><div class="value-label">Wants</div><div class="value-num">${community.want?.toLocaleString() || '—'}</div></div>
+      ${lowestPrice != null ? `<div class="value-divider"></div><div class="value-entry"><div class="value-label">Lowest</div><div class="value-num">$${lowestPrice.toFixed(2)}</div></div>` : ''}
+      <div class="value-divider"></div>
+      <div class="value-entry"><div class="value-label">Rating</div><div class="value-num">${community.rating?.average?.toFixed(1) || '—'}</div></div>
+    </div>`;
+  }
+
+  if (tracklist.length > 0) {
+    html += `<div style="margin-top:1.25rem">
+      <div style="font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Tracklist</div>
+      <div class="tracklist">`;
+    tracklist.forEach(t => {
+      if (t.type_ === 'heading') {
+        html += `<div style="font-family:'Playfair Display',serif;font-style:italic;font-size:0.8rem;color:var(--warm);padding:0.6rem 0 0.2rem">${t.title}</div>`;
+      } else {
+        html += `<div class="track-row">
+          <span class="track-pos">${t.position || ''}</span>
+          <span class="track-title">${t.title}</span>
+          <span class="track-duration">${t.duration || ''}</span>
+        </div>`;
+      }
+    });
+    html += '</div></div>';
+  }
+
+  $('modal-body').innerHTML = html || '<p style="color:var(--muted);font-family:DM Mono,monospace;font-size:0.75rem">No additional details available.</p>';
+}
+
+function navigateModal(dir) {
+  const newIdx = currentModalIdx + dir;
+  if (newIdx < 0 || newIdx >= filteredReleases.length) return;
+  openModal(newIdx);
+  $('modal-content').scrollTop = 0;
+}
+
+function closeModal() {
+  const overlay = $('modal-overlay');
+  overlay.classList.remove('open');
+  setTimeout(() => { overlay.style.display = 'none'; }, 250);
+  document.body.style.overflow = '';
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === $('modal-overlay')) closeModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if ($('modal-overlay').classList.contains('open')) {
+    if (e.key === 'ArrowRight') navigateModal(1);
+    if (e.key === 'ArrowLeft') navigateModal(-1);
+  }
+});
+
+// Kick off
+init();
+</script>
+</body>
+</html>
