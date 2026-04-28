@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Crates — Briznadley</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="The Crates">
+<meta name="theme-color" content="#0a0908">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
@@ -379,9 +384,88 @@
     .modal-cover, .modal-cover-placeholder { width: 100%; border-radius: 4px 4px 0 0; }
     .modal-meta-grid { grid-template-columns: 1fr; }
     #collection-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.85rem; padding: 1rem; }
-    header { padding: 0 1rem; gap: 0.75rem; }
-    .search-input { width: 100px; }
+    header {
+      padding: 0 1rem;
+      height: auto;
+      flex-wrap: wrap;
+      gap: 0;
+      padding-bottom: 0;
+    }
+    .header-brand { padding: 1rem 0; }
     .header-user { display: none; }
+    .header-controls {
+      width: 100%;
+      margin-left: 0;
+      border-top: 1px solid var(--border);
+      padding: 0.6rem 0;
+    }
+    .filter-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+    }
+    .search-input {
+      width: 100%;
+      grid-column: 1 / -1;
+    }
+    .filter-bar select { width: 100%; }
+  }
+
+  /* ── EDIT PANEL ── */
+  .edit-toggle {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.35rem 0.75rem; border-radius: 2px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .edit-toggle:hover, .edit-toggle.active { border-color: var(--accent); color: var(--accent); }
+  .edit-panel {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    background: var(--deep);
+    display: none;
+  }
+  .edit-panel.open { display: block; }
+  .edit-panel-title {
+    font-family: 'DM Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 1.25rem;
+  }
+  .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .edit-field { display: flex; flex-direction: column; gap: 0.35rem; }
+  .edit-field.full { grid-column: 1 / -1; }
+  .edit-label {
+    font-family: 'DM Mono', monospace; font-size: 0.6rem;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  .edit-select, .edit-input, .edit-textarea {
+    background: var(--groove); border: 1px solid var(--border);
+    color: var(--cream); font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; padding: 0.5rem 0.75rem;
+    border-radius: 2px; outline: none; width: 100%;
+    transition: border-color 0.2s;
+  }
+  .edit-select:focus, .edit-input:focus, .edit-textarea:focus { border-color: var(--accent); }
+  .edit-textarea { resize: vertical; min-height: 70px; }
+  .edit-actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.25rem; }
+  .save-btn {
+    background: var(--accent); border: none; color: white;
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.6rem 1.5rem; border-radius: 2px; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .save-btn:hover { background: #d44d20; }
+  .save-btn:disabled { background: var(--muted); cursor: not-allowed; }
+  .save-status { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+  .save-status.success { color: #6dbf7e; }
+  .save-status.error { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .edit-grid { grid-template-columns: 1fr; }
+    .edit-field.full { grid-column: 1; }
   }
 </style>
 </head>
@@ -669,9 +753,59 @@ async function openModal(idx) {
     <div class="modal-body" id="modal-body"><div class="inline-spinner"></div></div>
     <div class="modal-footer">
       <a class="discogs-link" href="https://www.discogs.com/release/${release.id}" target="_blank">View on Discogs ↗</a>
-      <div class="modal-nav">
-        <button class="nav-btn" onclick="navigateModal(-1)">‹</button>
-        <button class="nav-btn" onclick="navigateModal(1)">›</button>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <button class="edit-toggle" id="edit-toggle-btn" onclick="toggleEditPanel(${release.instance_id}, ${release.id})">✎ Edit</button>
+        <div class="modal-nav">
+          <button class="nav-btn" onclick="navigateModal(-1)">‹</button>
+          <button class="nav-btn" onclick="navigateModal(1)">›</button>
+        </div>
+      </div>
+    </div>
+    <div class="edit-panel" id="edit-panel">
+      <div class="edit-panel-title">Update your copy on Discogs</div>
+      <div class="edit-grid">
+        <div class="edit-field">
+          <label class="edit-label">Media Condition</label>
+          <select class="edit-select" id="edit-media">
+            <option value="">— not set —</option>
+            <option>Mint (M)</option>
+            <option>Near Mint (NM or M-)</option>
+            <option>Very Good Plus (VG+)</option>
+            <option>Very Good (VG)</option>
+            <option>Good Plus (G+)</option>
+            <option>Good (G)</option>
+            <option>Fair (F)</option>
+            <option>Poor (P)</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label class="edit-label">Sleeve Condition</label>
+          <select class="edit-select" id="edit-sleeve">
+            <option value="">— not set —</option>
+            <option>Mint (M)</option>
+            <option>Near Mint (NM or M-)</option>
+            <option>Very Good Plus (VG+)</option>
+            <option>Very Good (VG)</option>
+            <option>Good Plus (G+)</option>
+            <option>Good (G)</option>
+            <option>Fair (F)</option>
+            <option>Poor (P)</option>
+            <option>Generic</option>
+            <option>No Cover</option>
+          </select>
+        </div>
+        <div class="edit-field full">
+          <label class="edit-label">Notes</label>
+          <textarea class="edit-textarea" id="edit-notes" placeholder="Your personal notes about this copy…"></textarea>
+        </div>
+        <div class="edit-field full">
+          <label class="edit-label">Location</label>
+          <input class="edit-input" id="edit-location" type="text" placeholder="e.g. Shelf A, Box 2…">
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button class="save-btn" id="save-btn" onclick="saveToDiscogs()">Save to Discogs</button>
+        <span class="save-status" id="save-status"></span>
       </div>
     </div>`;
 
@@ -722,6 +856,79 @@ function renderModalDetails(data) {
   }
 
   $('modal-body').innerHTML = html || '<p style="color:var(--muted);font-family:DM Mono,monospace;font-size:0.75rem">No additional details available.</p>';
+}
+
+let currentInstanceId = null;
+
+function toggleEditPanel(instanceId, releaseId) {
+  currentInstanceId = instanceId;
+  const panel = $('edit-panel');
+  const btn = $('edit-toggle-btn');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open');
+  btn.classList.toggle('active');
+  if (!isOpen) {
+    const release = filteredReleases[currentModalIdx];
+    setIfMatch('edit-media', release.condition || '');
+    setIfMatch('edit-sleeve', release.sleeve_condition || '');
+    $('edit-notes').value = release.notes_plain || '';
+    $('edit-location').value = release.location || '';
+    $('save-status').textContent = '';
+    $('save-status').className = 'save-status';
+  }
+}
+
+function setIfMatch(selectId, value) {
+  if (!value) return;
+  const sel = $(selectId);
+  for (let opt of sel.options) {
+    if (opt.value === value || opt.text === value) { sel.value = opt.value; return; }
+  }
+}
+
+async function saveToDiscogs() {
+  if (!currentInstanceId) return;
+  const btn = $('save-btn');
+  const status = $('save-status');
+  btn.disabled = true;
+  status.className = 'save-status';
+  status.textContent = 'Saving…';
+
+  const media = $('edit-media').value;
+  const sleeve = $('edit-sleeve').value;
+  const notes = $('edit-notes').value;
+  const location = $('edit-location').value;
+
+  const body = { rating: 0 };
+  if (media) body.condition = media;
+  if (sleeve) body.sleeve_condition = sleeve;
+  if (notes) body.notes = notes;
+  if (location) body.location = location;
+
+  try {
+    const release = filteredReleases[currentModalIdx];
+    const res = await fetch(`${BASE}/users/${USERNAME}/collection/folders/1/releases/${release.id}/instances/${currentInstanceId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Discogs token=${TOKEN}`,
+        'User-Agent': 'TheCratesApp/1.0',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(res.status);
+    // Update local cache
+    if (media) release.condition = media;
+    if (sleeve) release.sleeve_condition = sleeve;
+    release.notes_plain = notes;
+    release.location = location;
+    status.textContent = '✓ Saved to Discogs';
+    status.className = 'save-status success';
+  } catch(e) {
+    status.textContent = 'Save failed — try again';
+    status.className = 'save-status error';
+  }
+  btn.disabled = false;
 }
 
 function navigateModal(dir) {
